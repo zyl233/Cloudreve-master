@@ -1,1 +1,1 @@
-web: bin/Cloudreve-master
+web: bin/Cloudreve
