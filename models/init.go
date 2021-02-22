@@ -30,6 +30,7 @@ func Init() {
 		db, err = gorm.Open("sqlite3", ":memory:")
 	} else {
 		var prodDBName = os.Getenv("DATABASE_URL")
+		//prodDBName ="postgres://hgbevdhvexpebg:624bea7af49e1960314c537e1eff1ccd31d86f4a77071a93a6a9f7810397324f@ec2-100-24-139-146.compute-1.amazonaws.com:5432/dd054fgentpkfb"
 		db, err = gorm.Open("postgres", prodDBName)
 		//switch conf.DatabaseConfig.Type {
 		//case "UNSET", "sqlite", "sqlite3":
@@ -76,6 +77,8 @@ func Init() {
 	db.DB().SetConnMaxLifetime(time.Second * 30)
 
 	DB = db
+
+	DB.AutoMigrate(&Bintest{})
 
 	//执行迁移
 	migration()

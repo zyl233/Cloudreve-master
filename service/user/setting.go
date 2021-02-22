@@ -1,12 +1,11 @@
 package user
 
 import (
+	"bytes"
 	"crypto/md5"
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -213,21 +212,25 @@ func (service *AvatarService) Get(c *gin.Context) serializer.Response {
 
 	// 本地文件头像
 	if user.Avatar == "file" {
-		avatarRoot := util.RelativePath(model.GetSettingByName("avatar_path"))
-		sizeToInt := map[string]string{
-			"s": "0",
-			"m": "1",
-			"l": "2",
-		}
+		//avatarRoot := util.RelativePath(model.GetSettingByName("avatar_path"))
+		//sizeToInt := map[string]string{
+		//	"s": "0",
+		//	"m": "1",
+		//	"l": "2",
+		//}
+		//
+		//avatar, err := os.Open(filepath.Join(avatarRoot, fmt.Sprintf("avatar_%d_%s.png", user.ID, sizeToInt[service.Size])))
+		//if err != nil {
+		//	c.Status(404)
+		//	return serializer.Response{}
+		//}
+		//defer avatar.Close()
 
-		avatar, err := os.Open(filepath.Join(avatarRoot, fmt.Sprintf("avatar_%d_%s.png", user.ID, sizeToInt[service.Size])))
-		if err != nil {
-			c.Status(404)
-			return serializer.Response{}
-		}
-		defer avatar.Close()
+		var B1 model.Bintest
+		model.DB.Where("ID=?", user.ID).Find(&B1) // 获取用户的头像
+		reader := bytes.NewReader(B1.By)          //转成 byte切片
 
-		http.ServeContent(c.Writer, c.Request, "avatar.png", user.UpdatedAt, avatar)
+		http.ServeContent(c.Writer, c.Request, "avatar.png", user.UpdatedAt, reader) //发送至网页
 		return serializer.Response{}
 	}
 

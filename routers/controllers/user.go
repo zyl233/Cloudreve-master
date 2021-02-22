@@ -3,12 +3,12 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/authn"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/cloudreve/Cloudreve/v3/service/user"
 	"github.com/duo-labs/webauthn/webauthn"
@@ -288,19 +288,40 @@ func UploadAvatar(c *gin.Context) {
 		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法读取头像数据", err))
 		return
 	}
-	avatar, err := thumb.NewThumbFromFile(r, file.Filename)
+	defer r.Close()
+
+	all, err := ioutil.ReadAll(r)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法解析图像数据", err))
+		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法读取头像数据", err))
 		return
 	}
 
-	// 创建头像
-	u := CurrentUser(c)
-	err = avatar.CreateAvatar(u.ID)
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法创建头像", err))
-		return
+	u := CurrentUser(c) //获取要更新的用户id
+	var B1 model.Bintest
+	affected := model.DB.Where("id=?", u.ID).Find(&B1).RowsAffected //用户头像是否已存在
+
+	if affected == 0 { //不存在则创建
+		model.DB.Create(&model.Bintest{
+			Id: u.ID,
+			By: all,
+		})
+	} else { //存在则更新
+		model.DB.Model(&model.Bintest{}).Where("id=?", u.ID).Update("by", all)
 	}
+
+	//avatar, err := thumb.NewThumbFromFile(r, file.Filename)
+	//if err != nil {
+	//	c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法解析图像数据", err))
+	//	return
+	//}
+
+	// 创建头像
+
+	//err = avatar.CreateAvatar(u.ID)
+	//if err != nil {
+	//	c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法创建头像", err))
+	//	return
+	//}
 
 	// 保存头像标记
 	if err := u.Update(map[string]interface{}{
